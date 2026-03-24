@@ -8,14 +8,15 @@ import MG2D.geometrie.Triangle;
 import java.awt.Font;
 
 class Hud {
-    private static final Couleur HUD_BG = new Couleur(22, 19, 22);
-    private static final Couleur PANEL_BG = new Couleur(34, 30, 34);
-    private static final Couleur PANEL_ALT = new Couleur(42, 36, 40);
-    private static final Couleur FRAME_COLOR = new Couleur(214, 204, 188);
-    private static final Couleur TEXT_COLOR = new Couleur(241, 236, 224);
-    private static final Couleur ACCENT_COLOR = new Couleur(194, 142, 98);
-    private static final Couleur READY_COLOR = new Couleur(208, 184, 132);
-    private static final Couleur COOLING_COLOR = new Couleur(132, 104, 92);
+    private static final Couleur HUD_BG = new Couleur(10, 14, 20);
+    private static final Couleur PANEL_BG = new Couleur(19, 27, 37);
+    private static final Couleur PANEL_ALT = new Couleur(22, 31, 44);
+    private static final Couleur FRAME_COLOR = new Couleur(86, 141, 193);
+    private static final Couleur TEXT_COLOR = new Couleur(234, 241, 249);
+    private static final Couleur ACCENT_COLOR = new Couleur(110, 200, 255);
+    private static final Couleur READY_COLOR = new Couleur(118, 255, 213);
+    private static final Couleur COOLING_COLOR = new Couleur(255, 193, 102);
+    private static final int COOLDOWN_TRACK_WIDTH = 126;
 
     private final int width;
     private final int height;
@@ -89,25 +90,25 @@ class Hud {
             centerX + 240
         };
 
-        hudBand = new Rectangle(HUD_BG, new Point(0, height - 104), width, 104, true);
-        leftInfoPanel = new Rectangle(PANEL_BG, new Point(24, height - 90), 248, 64, true);
-        centerInfoPanel = new Rectangle(PANEL_BG, new Point(width / 2 - 130, height - 90), 260, 64, true);
-        rightInfoPanel = new Rectangle(PANEL_BG, new Point(width - 374, height - 92), 338, 68, true);
-        rightInfoInset = new Rectangle(new Couleur(28, 26, 32), new Point(width - 362, height - 86), 314, 54, true);
+        hudBand = new Rectangle(HUD_BG, new Point(0, height - 112), width, 112, true);
+        leftInfoPanel = new Rectangle(PANEL_BG, new Point(26, height - 96), 264, 68, true);
+        centerInfoPanel = new Rectangle(PANEL_BG, new Point(width / 2 - 154, height - 96), 308, 68, true);
+        rightInfoPanel = new Rectangle(PANEL_BG, new Point(width - 404, height - 98), 368, 74, true);
+        rightInfoInset = new Rectangle(new Couleur(13, 20, 30), new Point(width - 392, height - 92), 344, 60, true);
         rightInfoAccent = new Rectangle(ACCENT_COLOR, new Point(width - 356, height - 82), 4, 46, true);
-        cooldownTrack = new Rectangle(new Couleur(54, 49, 48), new Point(width - 204, height - 82), 132, 16, true);
-        cooldownFill = new Rectangle(READY_COLOR, new Point(width - 204, height - 82), 132, 16, true);
+        cooldownTrack = new Rectangle(new Couleur(37, 53, 67), new Point(width - 180, height - 86), COOLDOWN_TRACK_WIDTH, 14, true);
+        cooldownFill = new Rectangle(READY_COLOR, new Point(width - 180, height - 86), COOLDOWN_TRACK_WIDTH, 14, true);
         overlayPanel = new Rectangle(PANEL_BG, new Point(-5000, -5000), 10, 10, true);
         overlayFrame = new Rectangle(FRAME_COLOR, new Point(-5000, -5000), 10, 10, false);
 
-        brandText = new Texte(ACCENT_COLOR, "NEON DASH", bodyFont, new Point(width / 2, height - 20));
-        scoreText = new Texte(TEXT_COLOR, "Score  0", bodyFont, new Point(148, height - 56));
-        difficultyText = new Texte(TEXT_COLOR, "Niveau 1", bodyFont, new Point(width / 2, height - 56));
-        dashText = new Texte(TEXT_COLOR, "2 / 2", bodyFont, new Point(width - 138, height - 50));
-        hintText = new Texte(TEXT_COLOR, "", smallFont, new Point(width / 2, height - 82));
-        statsText = new Texte(ACCENT_COLOR, "", smallFont, new Point(170, height - 84));
-        livesLabel = new Texte(ACCENT_COLOR, "Vies", smallFont, new Point(width - 292, height - 50));
-        systemsLabel = new Texte(ACCENT_COLOR, "Dash Drive", smallFont, new Point(width - 136, height - 50));
+        brandText = new Texte(ACCENT_COLOR, "NEON DASH", bodyFont, new Point(width / 2, height - 22));
+        scoreText = new Texte(TEXT_COLOR, "Score 0", bodyFont, new Point(158, height - 58));
+        difficultyText = new Texte(TEXT_COLOR, "Niveau 1", bodyFont, new Point(width / 2, height - 58));
+        dashText = new Texte(TEXT_COLOR, "2 / 2", bodyFont, new Point(width - 122, height - 58));
+        hintText = new Texte(TEXT_COLOR, "", smallFont, new Point(width / 2, height - 88));
+        statsText = new Texte(ACCENT_COLOR, "", smallFont, new Point(158, height - 86));
+        livesLabel = new Texte(ACCENT_COLOR, "Coques", smallFont, new Point(width - 304, height - 52));
+        systemsLabel = new Texte(ACCENT_COLOR, "Double Dash", smallFont, new Point(width - 122, height - 52));
 
         overlayTitle = new Texte(TEXT_COLOR, "", titleFont, new Point(centerX, panelTop - 70));
         overlayLine1 = new Texte(TEXT_COLOR, "", bodyFont, new Point(centerX, panelTop - 150));
@@ -122,9 +123,9 @@ class Hud {
         nameSlots[2] = new Texte(TEXT_COLOR, "", titleFont, new Point(nameSlotX[2], panelBottom + 120));
         nameSlots[3] = new Texte(TEXT_COLOR, "", bodyFont, new Point(nameSlotX[3], panelBottom + 118));
         hearts = new Texture[] {
-            new Texture("hud_heart_full.png", new Point(width - 328, height - 84), 28, 25),
-            new Texture("hud_heart_full.png", new Point(width - 294, height - 84), 28, 25),
-            new Texture("hud_heart_full.png", new Point(width - 260, height - 84), 28, 25)
+            new Texture("hud_heart_full.png", new Point(width - 336, height - 88), 30, 27),
+            new Texture("hud_heart_full.png", new Point(width - 300, height - 88), 30, 27),
+            new Texture("hud_heart_full.png", new Point(width - 264, height - 88), 30, 27)
         };
         selector = new Triangle(
             ACCENT_COLOR,
@@ -240,9 +241,9 @@ class Hud {
     }
 
     public void updatePlaying(int score, int livesRemaining, double dashRatio, int dashCharges, int dashCapacity, int difficultyLevel, int comboMultiplier, int shatteredCount, String message) {
-        scoreText.setTexte("Score  " + score);
+        scoreText.setTexte("Score " + score);
         difficultyText.setTexte("Niveau " + difficultyLevel + "   Flux x" + comboMultiplier);
-        hintText.setTexte(message == null || message.length() == 0 ? "PC  Fleches bouger   F dash x2   G pause   Y menu" : message);
+        hintText.setTexte(message == null || message.length() == 0 ? "PC  Fleches   F dash x2   G pause   Y menu" : message);
         statsText.setTexte("Brisees " + shatteredCount);
 
         for (int index = 0; index < hearts.length; index++) {
@@ -263,7 +264,7 @@ class Hud {
         }
 
         double stockRatio = (dashCharges + (dashCharges < dashCapacity ? dashRatio : 0.0)) / (double) dashCapacity;
-        int fillWidth = (int) Math.round(226.0 * Math.max(0.0, Math.min(1.0, stockRatio)));
+        int fillWidth = (int) Math.round(COOLDOWN_TRACK_WIDTH * Math.max(0.0, Math.min(1.0, stockRatio)));
         cooldownFill.setLargeur(fillWidth);
     }
 
@@ -278,7 +279,7 @@ class Hud {
         } else {
             overlayLine4.setTexte("Aucun score enregistre pour le moment.");
         }
-        overlayLine5.setTexte("3 vies et 2 charges de dash des le depart.");
+        overlayLine5.setTexte("3 vies, 2 charges de dash et restart instantane.");
         clearNameEntry();
     }
 

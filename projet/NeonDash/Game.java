@@ -26,7 +26,7 @@ public class Game {
     private static final double MAX_FRAME_DELTA = 0.033;
     private static final double PHYSICS_STEP = 0.008;
     private static final int MAX_LIVES = 3;
-    private static final double HIT_RECOVERY_SECONDS = 1.10;
+    private static final double HIT_RECOVERY_SECONDS = 1.25;
 
     private final FenetrePleinEcran window;
     private final int width;
@@ -315,7 +315,7 @@ public class Game {
         runStartMillis = System.currentTimeMillis();
         finalScore = 0;
         hud.hideOverlay();
-        hud.updatePlaying(0, player.getDashChargeRatio(), player.getDashCharges(), player.getMaxDashCharges(), spawner.getDifficultyLevel(0), comboMultiplier, shatteredCount, "");
+        hud.updatePlaying(0, livesRemaining, player.getDashChargeRatio(), player.getDashCharges(), player.getMaxDashCharges(), spawner.getDifficultyLevel(0), comboMultiplier, shatteredCount, "");
         layersNeedRefresh = true;
         state = GameState.PLAYING;
     }
@@ -324,7 +324,7 @@ public class Game {
         resetRunState();
         finalScore = 0;
         state = GameState.INTRO;
-        hud.updatePlaying(0, player.getDashChargeRatio(), player.getDashCharges(), player.getMaxDashCharges(), spawner.getDifficultyLevel(0), 1, 0, "");
+        hud.updatePlaying(0, livesRemaining, player.getDashChargeRatio(), player.getDashCharges(), player.getMaxDashCharges(), spawner.getDifficultyLevel(0), 1, 0, "");
         hud.showIntro(highScores.getBestScore());
         layersNeedRefresh = true;
     }
@@ -389,7 +389,7 @@ public class Game {
         player.reset((fieldLeft + fieldRight) / 2, (fieldBottom + fieldTop) / 2);
         player.bringToFront(window);
         recoveryTimer = HIT_RECOVERY_SECONDS;
-        setHudMessage("COEUR PERDU  " + livesRemaining + " restants", 1.1);
+        setHudMessage("COEUR PERDU  " + livesRemaining + " vies", 1.1);
         emitRespawnBurst();
         layersNeedRefresh = true;
     }

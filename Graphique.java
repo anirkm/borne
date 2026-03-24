@@ -46,6 +46,11 @@ public class Graphique {
 	}catch (Exception e) {
 	    System.err.println(e.getMessage());
 	}
+	if(font == null){
+	    font = new Font("Dialog", Font.BOLD, 32);
+	}
+	Font titleFont = font.deriveFont(24.0f);
+	Font infoFont = font.deriveFont(15.0f);
 
 	//f = new Fenetre("_Menu Borne D'arcade_",TAILLEX,TAILLEY);
 	f.setVisible(true);
@@ -72,18 +77,38 @@ public class Graphique {
 	
 	Bouton.remplirBouton();
 	pointeur = new Pointeur();
-	bs = new BoiteSelection(new Rectangle(Couleur .GRIS_CLAIR, new Point(0, 0), new Point(640, TAILLEY), true), pointeur);
-	//f.ajouter(bs.getRectangle());
+	Couleur panelLeft = new Couleur(18, 24, 36);
+	Couleur panelTop = new Couleur(20, 29, 43);
+	Couleur panelBottom = new Couleur(16, 22, 33);
+	Couleur panelFrame = new Couleur(88, 180, 240);
+	bs = new BoiteSelection(new Rectangle(panelLeft, new Point(28, 60), new Point(622, 994), true), pointeur);
 	//System.out.println(tableau[pointeur.getValue()].getChemin());
-	bi = new BoiteImage(new Rectangle(Couleur .GRIS_FONCE, new Point(640, 512), new Point(TAILLEX, TAILLEY), true), new String(tableau[pointeur.getValue()].getChemin()));
-	//f.ajouter(bi.getRectangle());
-	bd = new BoiteDescription(new Rectangle(Couleur .GRIS, new Point(640, 0), new Point(TAILLEX, 512), true));
+	bi = new BoiteImage(new Rectangle(panelBottom, new Point(660, 530), new Point(1252, 994), true), new String(tableau[pointeur.getValue()].getChemin()));
+	bd = new BoiteDescription(new Rectangle(panelTop, new Point(660, 60), new Point(1252, 500), true));
 	bd.lireFichier(tableau[pointeur.getValue()].getChemin());
 	bd.lireHighScore(tableau[pointeur.getValue()].getChemin());
 	//f.ajouter(bd.getRectangle());
 
-	Texture fond = new Texture("img/fondretro3.png", new Point(0, 0), TAILLEX, TAILLEY);
+	String fondMenu = new File("img/menu_backdrop.png").exists() ? "img/menu_backdrop.png" : "img/fondretro3.png";
+	Texture fond = new Texture(fondMenu, new Point(0, 0), TAILLEX, TAILLEY);
+	Rectangle bandeauHaut = new Rectangle(new Couleur(7, 10, 16), new Point(0, 0), new Point(TAILLEX, 54), true);
+	Rectangle cadreGauche = new Rectangle(panelFrame, new Point(28, 60), new Point(622, 994), false);
+	Rectangle cadreHautDroit = new Rectangle(panelFrame, new Point(660, 60), new Point(1252, 500), false);
+	Rectangle cadreBasDroit = new Rectangle(panelFrame, new Point(660, 530), new Point(1252, 994), false);
+	Texte titre = new Texte(new Couleur(223, 240, 255), "BORNE ARCADE", titleFont, new Point(200, 34));
+	Texte sousTitre = new Texte(new Couleur(110, 200, 255), "Selection de jeux", infoFont, new Point(490, 34));
+	Texte guide = new Texte(new Couleur(223, 240, 255), "PC  Haut/Bas naviguer   F lancer   Y quitter", infoFont, new Point(992, 34));
 	f.ajouter(fond);
+	f.ajouter(bandeauHaut);
+	f.ajouter(bs.getRectangle());
+	f.ajouter(bd.getRectangle());
+	f.ajouter(bi.getRectangle());
+	f.ajouter(cadreGauche);
+	f.ajouter(cadreHautDroit);
+	f.ajouter(cadreBasDroit);
+	f.ajouter(titre);
+	f.ajouter(sousTitre);
+	f.ajouter(guide);
 	//ajout apres fond car bug graphique sinon
 	f.ajouter(bi.getImage());
 	for(int i = 0 ; i < bd.getMessage().length ; i++){
@@ -111,9 +136,9 @@ public class Graphique {
 	    f.ajouter(bd.gettBouton()[i]);
 	}
 	f.ajouter(bd.gettJoystick());
-	f.ajouter(new Ligne(Couleur.NOIR,new Point(670,360), new Point(1250,360)));
-	f.ajouter(new Ligne(Couleur.NOIR,new Point(670,190), new Point(1250,190)));
-	f.ajouter(new Ligne(Couleur.NOIR,new Point(960,210), new Point(960,310)));
+	f.ajouter(new Ligne(panelFrame,new Point(680,360), new Point(1232,360)));
+	f.ajouter(new Ligne(panelFrame,new Point(680,190), new Point(1232,190)));
+	f.ajouter(new Ligne(panelFrame,new Point(960,210), new Point(960,310)));
 	f.ajouter(bd.getHighscore());
 	for(int i = 0 ; i < bd.getListeHighScore().length ; i++){
 	    f.ajouter(bd.getListeHighScore()[i]);

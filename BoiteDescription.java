@@ -14,6 +14,8 @@ import java.io.IOException;
 
 
 public class BoiteDescription extends Boite{
+    private static final Couleur PANEL_TEXT = new Couleur(234, 241, 249);
+    private static final Couleur PANEL_ACCENT = new Couleur(110, 200, 255);
 
     private Texte[] message;
     private boolean stop;
@@ -70,30 +72,30 @@ public class BoiteDescription extends Boite{
 	}
 	
 	//declaration des textes bouton + joystick
-	this.tJoystick = new Texte(Couleur .NOIR, "...", font1, new Point(760, 80));
+	this.tJoystick = new Texte(PANEL_TEXT, "...", font1, new Point(760, 80));
 	for(int i = 0 ; i < 3 ; i++){
-	    this.tBouton[i] = new Texte(Couleur .NOIR, "...", font1, new Point(910+130*i, 120));
+	    this.tBouton[i] = new Texte(PANEL_TEXT, "...", font1, new Point(910+130*i, 120));
 	}
 	for(int i = 3 ; i < 6 ; i++){
-	    this.tBouton[i] = new Texte(Couleur .NOIR, "...", font1, new Point(910+130*(i-3), 40));
+	    this.tBouton[i] = new Texte(PANEL_TEXT, "...", font1, new Point(910+130*(i-3), 40));
 	}
 	stop = false;
 	message = new Texte[10];
 	for(int i = 0 ; i < message.length ; i++){
-	    message[i] = new Texte(Couleur .NOIR, "", font2, new Point(960, 590));
+	    message[i] = new Texte(PANEL_TEXT, "", font2, new Point(960, 590));
 	    message[i].translater(0, -i*30);
 
 	}
 	nombreLigne = 0;
 
-	highscore = new Texte(Couleur.NOIR, "HIGHSCORE", font3, new Point(960, 335));
+	highscore = new Texte(PANEL_ACCENT, "HIGHSCORE", font3, new Point(960, 335));
 	listeHighScore = new Texte[10];
 	for(int i=0;i<5;i++){
-	    listeHighScore[i] = new Texte(Couleur.NOIR, "", font4, new Point(820,310));
+	    listeHighScore[i] = new Texte(PANEL_TEXT, "", font4, new Point(820,310));
 	    listeHighScore[i].translater(0,-i*25);
 	}
 	for(int i=5;i<10;i++){
-	    listeHighScore[i] = new Texte(Couleur.NOIR, "", font4, new Point(1100,310));
+	    listeHighScore[i] = new Texte(PANEL_TEXT, "", font4, new Point(1100,310));
 	    listeHighScore[i].translater(0,-(i-5)*25);
 	}
 	

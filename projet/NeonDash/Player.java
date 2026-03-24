@@ -22,6 +22,7 @@ class Player {
     private static final int MAX_DASH_CHARGES = 2;
 
     private final int radius;
+    private final int collisionRadius;
     private final int shipWidth;
     private final int shipHeight;
     private final int shadowWidth;
@@ -52,6 +53,7 @@ class Player {
 
     Player(int startX, int startY, int radius) {
         this.radius = radius;
+        this.collisionRadius = Math.max(12, (int) Math.round(radius * 0.72));
         this.shipWidth = radius * 3;
         this.shipHeight = radius * 3;
         this.shadowWidth = shipWidth + 24;
@@ -226,6 +228,10 @@ class Player {
 
     public int getRadius() {
         return radius;
+    }
+
+    public int getCollisionRadius() {
+        return collisionRadius;
     }
 
     public double getDashChargeRatio() {

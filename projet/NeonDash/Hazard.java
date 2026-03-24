@@ -32,7 +32,7 @@ class Hazard {
         this.velocityX = velocityX;
         this.velocityY = velocityY;
         this.spriteSize = Math.max(50, radius * 5);
-        this.collisionRadius = radius + 2;
+        this.collisionRadius = Math.max(13, radius - 2);
         this.trail = new Ligne(trailColor, new Point(startX, startY), new Point(startX, startY));
         this.blade = new Texture(spritePath, new Point(startX - spriteSize / 2, startY - spriteSize / 2), spriteSize, spriteSize);
         this.grazeAwarded = false;
@@ -69,7 +69,7 @@ class Hazard {
     public boolean collides(Player player) {
         double dx = player.getX() - x;
         double dy = player.getY() - y;
-        double combined = player.getRadius() + collisionRadius;
+        double combined = player.getCollisionRadius() + collisionRadius;
         return dx * dx + dy * dy <= combined * combined;
     }
 
@@ -80,7 +80,7 @@ class Hazard {
 
         double dx = player.getX() - x;
         double dy = player.getY() - y;
-        double collision = player.getRadius() + collisionRadius;
+        double collision = player.getCollisionRadius() + collisionRadius;
         double grazeRadius = collision + margin;
         double distanceSquared = dx * dx + dy * dy;
 
