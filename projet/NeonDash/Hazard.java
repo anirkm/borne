@@ -1,19 +1,21 @@
 import MG2D.Fenetre;
-import MG2D.geometrie.Cercle;
 import MG2D.Couleur;
 import MG2D.geometrie.Ligne;
 import MG2D.geometrie.Point;
+import MG2D.geometrie.Texture;
 
 class Hazard {
     private final int radius;
+    private final int collisionRadius;
     private final double velocityX;
     private final double velocityY;
     private final Ligne trail;
-    private final Cercle glow;
-    private final Cercle core;
+    private final Texture blade;
+    private final int spriteSize;
 
     private double x;
     private double y;
+    private boolean grazeAwarded;
 
     Hazard(
         int startX,
@@ -22,29 +24,28 @@ class Hazard {
         double velocityX,
         double velocityY,
         Couleur trailColor,
-        Couleur coreColor,
-        Couleur glowColor
+        String spritePath
     ) {
         this.x = startX;
         this.y = startY;
         this.radius = radius;
         this.velocityX = velocityX;
         this.velocityY = velocityY;
+        this.spriteSize = Math.max(50, radius * 5);
+        this.collisionRadius = radius + 2;
         this.trail = new Ligne(trailColor, new Point(startX, startY), new Point(startX, startY));
-        this.glow = new Cercle(glowColor, new Point(startX, startY), radius + 7, false);
-        this.core = new Cercle(coreColor, new Point(startX, startY), radius, true);
+        this.blade = new Texture(spritePath, new Point(startX - spriteSize / 2, startY - spriteSize / 2), spriteSize, spriteSize);
+        this.grazeAwarded = false;
     }
 
     public void addTo(Fenetre window) {
         window.ajouter(trail);
-        window.ajouter(glow);
-        window.ajouter(core);
+        window.ajouter(blade);
     }
 
     public void removeFrom(Fenetre window) {
         window.supprimer(trail);
-        window.supprimer(glow);
-        window.supprimer(core);
+        window.supprimer(blade);
     }
 
     public void update(double delta) {
@@ -54,24 +55,41 @@ class Hazard {
         y += velocityY * delta;
         trail.setA(new Point((int) Math.round(previousX), (int) Math.round(previousY)));
         trail.setB(new Point((int) Math.round(x), (int) Math.round(y)));
-        Point position = new Point((int) Math.round(x), (int) Math.round(y));
-        glow.setO(position);
-        core.setO(position);
+        blade.setA(new Point((int) Math.round(x - spriteSize / 2.0), (int) Math.round(y - spriteSize / 2.0)));
     }
 
     public boolean isOffscreen(int left, int bottom, int right, int top) {
-        int inset = radius + 4;
-        return x < left + inset
-            || x > right - inset
-            || y < bottom + inset
-            || y > top - inset;
+        int margin = spriteSize / 2 + 8;
+        return x < left - margin
+            || x > right + margin
+            || y < bottom - margin
+            || y > top + margin;
     }
 
     public boolean collides(Player player) {
         double dx = player.getX() - x;
         double dy = player.getY() - y;
-        double combined = player.getRadius() + radius - 2.0;
+        double combined = player.getRadius() + collisionRadius;
         return dx * dx + dy * dy <= combined * combined;
+    }
+
+    public boolean tryGraze(Player player, double margin) {
+        if (grazeAwarded) {
+            return false;
+        }
+
+        double dx = player.getX() - x;
+        double dy = player.getY() - y;
+        double collision = player.getRadius() + collisionRadius;
+        double grazeRadius = collision + margin;
+        double distanceSquared = dx * dx + dy * dy;
+
+        if (distanceSquared > collision * collision && distanceSquared <= grazeRadius * grazeRadius) {
+            grazeAwarded = true;
+            return true;
+        }
+
+        return false;
     }
 
     public double getX() {

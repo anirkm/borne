@@ -1,7 +1,9 @@
-NeonDash - Projet Arcade - 2026
-Traversez des vagues d'orbes
-dans une arene neon.
-Lisez les motifs, esquivez,
-et utilisez votre dash
-pour briser l'encerclement
-et battre le high score.
+NeonDash
+Traversez une piste futuriste
+et survivez aux vagues ennemies.
+Esquivez, frôlez le danger,
+et brisez des cibles au dash
+pour monter le score.
+PC: Fleches pour bouger
+F pour dash, G pause,
+Y pour quitter la partie.

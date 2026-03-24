@@ -2,19 +2,20 @@ import MG2D.Fenetre;
 import MG2D.Couleur;
 import MG2D.geometrie.Point;
 import MG2D.geometrie.Rectangle;
+import MG2D.geometrie.Texture;
 import MG2D.geometrie.Texte;
 import MG2D.geometrie.Triangle;
 import java.awt.Font;
 
 class Hud {
-    private static final Couleur HUD_BG = new Couleur(6, 10, 28);
-    private static final Couleur PANEL_BG = new Couleur(10, 16, 40);
-    private static final Couleur PANEL_ALT = new Couleur(16, 24, 56);
-    private static final Couleur FRAME_COLOR = new Couleur(42, 228, 255);
-    private static final Couleur TEXT_COLOR = new Couleur(232, 246, 255);
-    private static final Couleur ACCENT_COLOR = new Couleur(255, 189, 72);
-    private static final Couleur READY_COLOR = new Couleur(77, 255, 219);
-    private static final Couleur COOLING_COLOR = new Couleur(255, 108, 173);
+    private static final Couleur HUD_BG = new Couleur(22, 19, 22);
+    private static final Couleur PANEL_BG = new Couleur(34, 30, 34);
+    private static final Couleur PANEL_ALT = new Couleur(42, 36, 40);
+    private static final Couleur FRAME_COLOR = new Couleur(214, 204, 188);
+    private static final Couleur TEXT_COLOR = new Couleur(241, 236, 224);
+    private static final Couleur ACCENT_COLOR = new Couleur(194, 142, 98);
+    private static final Couleur READY_COLOR = new Couleur(208, 184, 132);
+    private static final Couleur COOLING_COLOR = new Couleur(132, 104, 92);
 
     private final int width;
     private final int height;
@@ -37,12 +38,17 @@ class Hud {
     private final Rectangle leftInfoPanel;
     private final Rectangle centerInfoPanel;
     private final Rectangle rightInfoPanel;
+    private final Rectangle rightInfoInset;
+    private final Rectangle rightInfoAccent;
 
     private final Texte brandText;
     private final Texte scoreText;
     private final Texte dashText;
     private final Texte difficultyText;
     private final Texte hintText;
+    private final Texte statsText;
+    private final Texte livesLabel;
+    private final Texte systemsLabel;
 
     private final Texte overlayTitle;
     private final Texte overlayLine1;
@@ -51,6 +57,7 @@ class Hud {
     private final Texte overlayLine4;
     private final Texte overlayLine5;
     private final Texte[] nameSlots;
+    private final Texture[] hearts;
     private final Triangle selector;
 
     Hud(
@@ -85,17 +92,22 @@ class Hud {
         hudBand = new Rectangle(HUD_BG, new Point(0, height - 104), width, 104, true);
         leftInfoPanel = new Rectangle(PANEL_BG, new Point(24, height - 90), 248, 64, true);
         centerInfoPanel = new Rectangle(PANEL_BG, new Point(width / 2 - 130, height - 90), 260, 64, true);
-        rightInfoPanel = new Rectangle(PANEL_BG, new Point(width - 350, height - 90), 300, 64, true);
-        cooldownTrack = new Rectangle(new Couleur(32, 42, 78), new Point(width - 330, height - 82), 226, 22, true);
-        cooldownFill = new Rectangle(READY_COLOR, new Point(width - 330, height - 82), 226, 22, true);
+        rightInfoPanel = new Rectangle(PANEL_BG, new Point(width - 374, height - 92), 338, 68, true);
+        rightInfoInset = new Rectangle(new Couleur(28, 26, 32), new Point(width - 362, height - 86), 314, 54, true);
+        rightInfoAccent = new Rectangle(ACCENT_COLOR, new Point(width - 356, height - 82), 4, 46, true);
+        cooldownTrack = new Rectangle(new Couleur(54, 49, 48), new Point(width - 204, height - 82), 132, 16, true);
+        cooldownFill = new Rectangle(READY_COLOR, new Point(width - 204, height - 82), 132, 16, true);
         overlayPanel = new Rectangle(PANEL_BG, new Point(-5000, -5000), 10, 10, true);
         overlayFrame = new Rectangle(FRAME_COLOR, new Point(-5000, -5000), 10, 10, false);
 
         brandText = new Texte(ACCENT_COLOR, "NEON DASH", bodyFont, new Point(width / 2, height - 20));
-        scoreText = new Texte(TEXT_COLOR, "Score  0 s", bodyFont, new Point(148, height - 56));
+        scoreText = new Texte(TEXT_COLOR, "Score  0", bodyFont, new Point(148, height - 56));
         difficultyText = new Texte(TEXT_COLOR, "Niveau 1", bodyFont, new Point(width / 2, height - 56));
-        dashText = new Texte(TEXT_COLOR, "Dash PRET", bodyFont, new Point(width - 218, height - 34));
+        dashText = new Texte(TEXT_COLOR, "2 / 2", bodyFont, new Point(width - 138, height - 50));
         hintText = new Texte(TEXT_COLOR, "", smallFont, new Point(width / 2, height - 82));
+        statsText = new Texte(ACCENT_COLOR, "", smallFont, new Point(170, height - 84));
+        livesLabel = new Texte(ACCENT_COLOR, "Vies", smallFont, new Point(width - 292, height - 50));
+        systemsLabel = new Texte(ACCENT_COLOR, "Dash Drive", smallFont, new Point(width - 136, height - 50));
 
         overlayTitle = new Texte(TEXT_COLOR, "", titleFont, new Point(centerX, panelTop - 70));
         overlayLine1 = new Texte(TEXT_COLOR, "", bodyFont, new Point(centerX, panelTop - 150));
@@ -109,6 +121,11 @@ class Hud {
         nameSlots[1] = new Texte(TEXT_COLOR, "", titleFont, new Point(nameSlotX[1], panelBottom + 120));
         nameSlots[2] = new Texte(TEXT_COLOR, "", titleFont, new Point(nameSlotX[2], panelBottom + 120));
         nameSlots[3] = new Texte(TEXT_COLOR, "", bodyFont, new Point(nameSlotX[3], panelBottom + 118));
+        hearts = new Texture[] {
+            new Texture("hud_heart_full.png", new Point(width - 328, height - 84), 28, 25),
+            new Texture("hud_heart_full.png", new Point(width - 294, height - 84), 28, 25),
+            new Texture("hud_heart_full.png", new Point(width - 260, height - 84), 28, 25)
+        };
         selector = new Triangle(
             ACCENT_COLOR,
             new Point(-5000, -5000),
@@ -124,6 +141,8 @@ class Hud {
         window.ajouter(leftInfoPanel);
         window.ajouter(centerInfoPanel);
         window.ajouter(rightInfoPanel);
+        window.ajouter(rightInfoInset);
+        window.ajouter(rightInfoAccent);
         window.ajouter(cooldownTrack);
         window.ajouter(cooldownFill);
         window.ajouter(overlayPanel);
@@ -133,12 +152,18 @@ class Hud {
         window.ajouter(difficultyText);
         window.ajouter(dashText);
         window.ajouter(hintText);
+        window.ajouter(statsText);
+        window.ajouter(livesLabel);
+        window.ajouter(systemsLabel);
         window.ajouter(overlayTitle);
         window.ajouter(overlayLine1);
         window.ajouter(overlayLine2);
         window.ajouter(overlayLine3);
         window.ajouter(overlayLine4);
         window.ajouter(overlayLine5);
+        window.ajouter(hearts[0]);
+        window.ajouter(hearts[1]);
+        window.ajouter(hearts[2]);
         window.ajouter(nameSlots[0]);
         window.ajouter(nameSlots[1]);
         window.ajouter(nameSlots[2]);
@@ -152,6 +177,8 @@ class Hud {
         window.supprimer(leftInfoPanel);
         window.supprimer(centerInfoPanel);
         window.supprimer(rightInfoPanel);
+        window.supprimer(rightInfoInset);
+        window.supprimer(rightInfoAccent);
         window.supprimer(cooldownTrack);
         window.supprimer(cooldownFill);
         window.supprimer(overlayPanel);
@@ -161,12 +188,18 @@ class Hud {
         window.supprimer(difficultyText);
         window.supprimer(dashText);
         window.supprimer(hintText);
+        window.supprimer(statsText);
+        window.supprimer(livesLabel);
+        window.supprimer(systemsLabel);
         window.supprimer(overlayTitle);
         window.supprimer(overlayLine1);
         window.supprimer(overlayLine2);
         window.supprimer(overlayLine3);
         window.supprimer(overlayLine4);
         window.supprimer(overlayLine5);
+        window.supprimer(hearts[0]);
+        window.supprimer(hearts[1]);
+        window.supprimer(hearts[2]);
         window.supprimer(nameSlots[0]);
         window.supprimer(nameSlots[1]);
         window.supprimer(nameSlots[2]);
@@ -176,6 +209,8 @@ class Hud {
         window.ajouter(leftInfoPanel);
         window.ajouter(centerInfoPanel);
         window.ajouter(rightInfoPanel);
+        window.ajouter(rightInfoInset);
+        window.ajouter(rightInfoAccent);
         window.ajouter(cooldownTrack);
         window.ajouter(cooldownFill);
         window.ajouter(overlayPanel);
@@ -185,12 +220,18 @@ class Hud {
         window.ajouter(difficultyText);
         window.ajouter(dashText);
         window.ajouter(hintText);
+        window.ajouter(statsText);
+        window.ajouter(livesLabel);
+        window.ajouter(systemsLabel);
         window.ajouter(overlayTitle);
         window.ajouter(overlayLine1);
         window.ajouter(overlayLine2);
         window.ajouter(overlayLine3);
         window.ajouter(overlayLine4);
         window.ajouter(overlayLine5);
+        window.ajouter(hearts[0]);
+        window.ajouter(hearts[1]);
+        window.ajouter(hearts[2]);
         window.ajouter(nameSlots[0]);
         window.ajouter(nameSlots[1]);
         window.ajouter(nameSlots[2]);
@@ -198,73 +239,85 @@ class Hud {
         window.ajouter(selector);
     }
 
-    public void updatePlaying(int score, double dashRatio, int difficultyLevel) {
-        scoreText.setTexte("Score  " + score + " s");
-        difficultyText.setTexte("Niveau " + difficultyLevel);
-        hintText.setTexte("A traverse la vague   B pause   Z menu");
+    public void updatePlaying(int score, int livesRemaining, double dashRatio, int dashCharges, int dashCapacity, int difficultyLevel, int comboMultiplier, int shatteredCount, String message) {
+        scoreText.setTexte("Score  " + score);
+        difficultyText.setTexte("Niveau " + difficultyLevel + "   Flux x" + comboMultiplier);
+        hintText.setTexte(message == null || message.length() == 0 ? "PC  Fleches bouger   F dash x2   G pause   Y menu" : message);
+        statsText.setTexte("Brisees " + shatteredCount);
 
-        if (dashRatio >= 1.0) {
-            dashText.setTexte("Dash PRET");
+        for (int index = 0; index < hearts.length; index++) {
+            hearts[index].setImg(index < livesRemaining ? "hud_heart_full.png" : "hud_heart_empty.png");
+        }
+
+        if (dashCharges >= dashCapacity) {
+            dashText.setTexte(dashCharges + " / " + dashCapacity);
             cooldownFill.setCouleur(READY_COLOR);
         } else {
             int percent = (int) Math.round(dashRatio * 100.0);
-            dashText.setTexte("Dash " + percent + "%");
+            if (dashCharges > 0) {
+                dashText.setTexte(dashCharges + " / " + dashCapacity + "  " + percent + "%");
+            } else {
+                dashText.setTexte("0 / " + dashCapacity + "  " + percent + "%");
+            }
             cooldownFill.setCouleur(COOLING_COLOR);
         }
 
-        int fillWidth = (int) Math.round(226.0 * Math.max(0.0, Math.min(1.0, dashRatio)));
+        double stockRatio = (dashCharges + (dashCharges < dashCapacity ? dashRatio : 0.0)) / (double) dashCapacity;
+        int fillWidth = (int) Math.round(226.0 * Math.max(0.0, Math.min(1.0, stockRatio)));
         cooldownFill.setLargeur(fillWidth);
     }
 
     public void showIntro(int bestScore) {
         setOverlayVisible(true);
         setOverlayText("NEON DASH");
-        overlayLine1.setTexte("Traversez les vagues et tenez le plus longtemps possible.");
-        overlayLine2.setTexte("Joystick J1 : deplacement");
-        overlayLine3.setTexte("A : dash invulnerable   B : pause   Z : quitter");
+        overlayLine1.setTexte("Survivez, frôlez et cassez les orbes au dash.");
+        overlayLine2.setTexte("PC : Fleches pour bouger");
+        overlayLine3.setTexte("F : double dash   G : pause   Y : retour menu");
         if (bestScore > 0) {
-            overlayLine4.setTexte("Meilleur score : " + bestScore + " s");
+            overlayLine4.setTexte("Meilleur score : " + bestScore);
         } else {
             overlayLine4.setTexte("Aucun score enregistre pour le moment.");
         }
-        overlayLine5.setTexte("Appuyez sur A pour lancer une partie.");
+        overlayLine5.setTexte("3 vies et 2 charges de dash des le depart.");
         clearNameEntry();
     }
 
     public void showPaused(int score) {
         setOverlayVisible(true);
         setOverlayText("PAUSE");
-        overlayLine1.setTexte("Score actuel : " + score + " s");
-        overlayLine2.setTexte("B pour reprendre la partie");
-        overlayLine3.setTexte("Z pour revenir au menu");
-        overlayLine4.setTexte("");
-        overlayLine5.setTexte("Le dash se recharge aussi pendant la pause.");
+        overlayLine1.setTexte("Score actuel : " + score);
+        overlayLine2.setTexte("G pour reprendre la partie");
+        overlayLine3.setTexte("F pour recommencer tout de suite");
+        overlayLine4.setTexte("Y pour revenir au menu");
+        overlayLine5.setTexte("La partie repart sans relancer le script.");
         clearNameEntry();
     }
 
     public void showGameOver(int score, boolean qualifies) {
         setOverlayVisible(true);
         setOverlayText("GAME OVER");
-        overlayLine1.setTexte("Score final : " + score + " s");
+        overlayLine1.setTexte("Score final : " + score);
         if (qualifies) {
-            overlayLine2.setTexte("Vous avez atteint le tableau des scores.");
-            overlayLine3.setTexte("A pour entrer vos initiales");
+            overlayLine2.setTexte("F pour recommencer immediatement");
+            overlayLine3.setTexte("G pour enregistrer vos initiales");
+            overlayLine4.setTexte("Y pour revenir au menu");
+            overlayLine5.setTexte("Le score sera sauvegarde au format AAA-score.");
         } else {
-            overlayLine2.setTexte("A pour revenir au menu");
-            overlayLine3.setTexte("Z pour quitter tout de suite");
+            overlayLine2.setTexte("F pour recommencer immediatement");
+            overlayLine3.setTexte("Y pour revenir au menu");
+            overlayLine4.setTexte("Vous pouvez enchainer sans relancer le jeu.");
+            overlayLine5.setTexte("");
         }
-        overlayLine4.setTexte("Lisez les motifs et gardez votre dash pour le vrai danger.");
-        overlayLine5.setTexte(qualifies ? "Le score sera sauvegarde au format AAA-score." : "");
         clearNameEntry();
     }
 
     public void showNameEntry(char[] name, int selectedIndex, int score) {
         setOverlayVisible(true);
         setOverlayText("HIGH SCORE");
-        overlayLine1.setTexte("Score : " + score + " s");
-        overlayLine2.setTexte("Joystick : changer les lettres et la position");
-        overlayLine3.setTexte("A sur OK pour sauvegarder");
-        overlayLine4.setTexte("Z pour quitter sans enregistrer");
+        overlayLine1.setTexte("Score : " + score);
+        overlayLine2.setTexte("PC : Fleches pour lettres et position");
+        overlayLine3.setTexte("F sur OK pour sauvegarder");
+        overlayLine4.setTexte("Y pour quitter sans enregistrer");
         overlayLine5.setTexte("");
 
         nameSlots[0].setTexte(String.valueOf(name[0]));

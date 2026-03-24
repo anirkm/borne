@@ -1,10 +1,10 @@
 import MG2D.FenetrePleinEcran;
-import MG2D.geometrie.Cercle;
 import MG2D.Couleur;
 import MG2D.geometrie.Dessin;
 import MG2D.geometrie.Ligne;
 import MG2D.geometrie.Point;
 import MG2D.geometrie.Rectangle;
+import MG2D.geometrie.Texture;
 import java.awt.Font;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
@@ -21,8 +21,12 @@ public class Game {
         NAME_ENTRY
     }
 
-    private static final int FRAME_TIME_MS = 16;
+    private static final int FRAME_TIME_MS = 8;
     private static final int MAX_PARTICLES = 220;
+    private static final double MAX_FRAME_DELTA = 0.033;
+    private static final double PHYSICS_STEP = 0.008;
+    private static final int MAX_LIVES = 3;
+    private static final double HIT_RECOVERY_SECONDS = 1.10;
 
     private final FenetrePleinEcran window;
     private final int width;
@@ -40,7 +44,6 @@ public class Game {
     private final Hud hud;
     private final HighScoreTable highScores;
     private final ArrayList<Dessin> arenaForeground;
-
     private GameState state;
     private long lastFrameNanos;
     private long runStartMillis;
@@ -50,6 +53,15 @@ public class Game {
     private boolean layersNeedRefresh;
     private double playerTrailTimer;
     private double hazardSparkTimer;
+    private double scoreValue;
+    private double comboTimer;
+    private int comboMultiplier;
+    private int shatteredCount;
+    private int livesRemaining;
+    private String hudMessage;
+    private double hudMessageTimer;
+    private double ambientTime;
+    private double recoveryTimer;
 
     public Game() {
         GraphicsDevice device = GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices()[0];
@@ -74,10 +86,7 @@ public class Game {
 
         int playerRadius = Math.max(18, Math.min(width, height) / 48);
         player = new Player((fieldLeft + fieldRight) / 2, (fieldBottom + fieldTop) / 2, playerRadius);
-        window.ajouter(player.getDashRing());
-        window.ajouter(player.getBody());
-        window.ajouter(player.getCore());
-        window.ajouter(player.getPointer());
+        player.addTo(window);
 
         spawner = new Spawner();
         hud = new Hud(
@@ -101,8 +110,17 @@ public class Game {
         layersNeedRefresh = false;
         playerTrailTimer = 0.0;
         hazardSparkTimer = 0.0;
+        scoreValue = 0.0;
+        comboTimer = 0.0;
+        comboMultiplier = 1;
+        shatteredCount = 0;
+        livesRemaining = MAX_LIVES;
+        hudMessage = "";
+        hudMessageTimer = 0.0;
+        ambientTime = 0.0;
+        recoveryTimer = 0.0;
 
-        hud.updatePlaying(0, 1.0, spawner.getDifficultyLevel(0));
+        hud.updatePlaying(0, livesRemaining, 1.0, player.getDashCharges(), player.getMaxDashCharges(), spawner.getDifficultyLevel(0), 1, 0, "");
         hud.showIntro(highScores.getBestScore());
         refreshForegroundLayers();
         player.tickVisual(0.0);
@@ -117,8 +135,8 @@ public class Game {
             double delta = (now - lastFrameNanos) / 1_000_000_000.0;
             lastFrameNanos = now;
 
-            if (delta > 0.05) {
-                delta = 0.05;
+            if (delta > MAX_FRAME_DELTA) {
+                delta = MAX_FRAME_DELTA;
             }
 
             update(delta);
@@ -134,6 +152,8 @@ public class Game {
     }
 
     private void update(double delta) {
+        updateArenaAmbience(delta);
+
         if (state == GameState.INTRO) {
             updateIntro(delta);
         } else if (state == GameState.PLAYING) {
@@ -177,27 +197,31 @@ public class Game {
             return;
         }
 
-        player.update(delta, keyboard, fieldLeft, fieldBottom, fieldRight, fieldTop);
-        emitPlayerTrail(delta);
-        if (player.consumeDashTriggered()) {
-            emitDashBurst();
-        }
-        finalScore = getElapsedScore();
-
-        if (spawner.update(delta, hazards, random, finalScore, fieldLeft, fieldBottom, fieldRight, fieldTop, window)) {
-            layersNeedRefresh = true;
+        double remaining = delta;
+        while (remaining > 0.0 && state == GameState.PLAYING) {
+            double step = Math.min(PHYSICS_STEP, remaining);
+            simulatePlayingStep(step);
+            remaining -= step;
         }
 
-        updateHazards(delta);
         emitHazardSparks(delta);
-        hud.updatePlaying(finalScore, player.getDashChargeRatio(), spawner.getDifficultyLevel(finalScore));
 
-        if (hasCollision()) {
-            emitImpactBurst(player.getX(), player.getY(), player.getDirectionX(), player.getDirectionY());
-            state = GameState.GAME_OVER;
-            hud.showGameOver(finalScore, highScores.qualifies(finalScore));
-            layersNeedRefresh = true;
+        if (state != GameState.PLAYING) {
+            return;
         }
+
+        finalScore = (int) Math.floor(scoreValue);
+        hud.updatePlaying(
+            finalScore,
+            livesRemaining,
+            player.getDashChargeRatio(),
+            player.getDashCharges(),
+            player.getMaxDashCharges(),
+            spawner.getDifficultyLevel(getElapsedSeconds()),
+            comboMultiplier,
+            shatteredCount,
+            hudMessageTimer > 0.0 ? hudMessage : ""
+        );
     }
 
     private void updatePaused(double delta) {
@@ -205,6 +229,11 @@ public class Game {
 
         if (keyboard.getBoutonJ1ZTape()) {
             exitToMenu();
+        }
+
+        if (keyboard.getBoutonJ1ATape()) {
+            startRun();
+            return;
         }
 
         if (keyboard.getBoutonJ1BTape()) {
@@ -222,15 +251,16 @@ public class Game {
         }
 
         if (keyboard.getBoutonJ1ATape()) {
-            if (highScores.qualifies(finalScore)) {
-                state = GameState.NAME_ENTRY;
-                nameBuffer = new char[] {'A', 'A', 'A'};
-                nameSelection = 0;
-                hud.showNameEntry(nameBuffer, nameSelection, finalScore);
-                layersNeedRefresh = true;
-            } else {
-                exitToMenu();
-            }
+            startRun();
+            return;
+        }
+
+        if (highScores.qualifies(finalScore) && keyboard.getBoutonJ1BTape()) {
+            state = GameState.NAME_ENTRY;
+            nameBuffer = new char[] {'A', 'A', 'A'};
+            nameSelection = 0;
+            hud.showNameEntry(nameBuffer, nameSelection, finalScore);
+            layersNeedRefresh = true;
         }
     }
 
@@ -266,7 +296,8 @@ public class Game {
         if (keyboard.getBoutonJ1ATape()) {
             if (nameSelection == 3) {
                 highScores.record(new String(nameBuffer), finalScore);
-                exitToMenu();
+                returnToIntro();
+                return;
             } else {
                 nameSelection = Math.min(3, nameSelection + 1);
                 changed = true;
@@ -280,6 +311,25 @@ public class Game {
     }
 
     private void startRun() {
+        resetRunState();
+        runStartMillis = System.currentTimeMillis();
+        finalScore = 0;
+        hud.hideOverlay();
+        hud.updatePlaying(0, player.getDashChargeRatio(), player.getDashCharges(), player.getMaxDashCharges(), spawner.getDifficultyLevel(0), comboMultiplier, shatteredCount, "");
+        layersNeedRefresh = true;
+        state = GameState.PLAYING;
+    }
+
+    private void returnToIntro() {
+        resetRunState();
+        finalScore = 0;
+        state = GameState.INTRO;
+        hud.updatePlaying(0, player.getDashChargeRatio(), player.getDashCharges(), player.getMaxDashCharges(), spawner.getDifficultyLevel(0), 1, 0, "");
+        hud.showIntro(highScores.getBestScore());
+        layersNeedRefresh = true;
+    }
+
+    private void resetRunState() {
         clearHazards();
         clearParticles();
         player.reset((fieldLeft + fieldRight) / 2, (fieldBottom + fieldTop) / 2);
@@ -287,18 +337,81 @@ public class Game {
         spawner.reset();
         playerTrailTimer = 0.0;
         hazardSparkTimer = 0.0;
-        runStartMillis = System.currentTimeMillis();
-        finalScore = 0;
-        hud.hideOverlay();
-        hud.updatePlaying(0, player.getDashChargeRatio(), spawner.getDifficultyLevel(0));
+        scoreValue = 0.0;
+        comboTimer = 0.0;
+        comboMultiplier = 1;
+        shatteredCount = 0;
+        livesRemaining = MAX_LIVES;
+        hudMessage = "";
+        hudMessageTimer = 0.0;
+        recoveryTimer = 0.0;
+    }
+
+    private void simulatePlayingStep(double delta) {
+        if (recoveryTimer > 0.0) {
+            recoveryTimer = Math.max(0.0, recoveryTimer - delta);
+        }
+
+        tickScoreSystems(delta);
+        player.update(delta, keyboard, fieldLeft, fieldBottom, fieldRight, fieldTop);
+        emitPlayerTrail(delta);
+        if (player.consumeDashTriggered()) {
+            if (player.consumeDoubleDashTriggered()) {
+                emitDoubleDashBurst();
+                setHudMessage("DOUBLE DASH", 0.45);
+            } else {
+                emitDashBurst();
+            }
+        }
+
+        int elapsedSeconds = getElapsedSeconds();
+        if (spawner.update(delta, hazards, random, elapsedSeconds, fieldLeft, fieldBottom, fieldRight, fieldTop, window)) {
+            layersNeedRefresh = true;
+        }
+
+        updateHazards(delta);
+        if (hasCollision()) {
+            handlePlayerHit();
+        }
+    }
+
+    private void handlePlayerHit() {
+        emitImpactBurst(player.getX(), player.getY(), player.getDirectionX(), player.getDirectionY());
+        livesRemaining--;
+
+        if (livesRemaining <= 0) {
+            triggerGameOver();
+            return;
+        }
+
+        clearHazards();
+        clearParticles();
+        player.reset((fieldLeft + fieldRight) / 2, (fieldBottom + fieldTop) / 2);
+        player.bringToFront(window);
+        recoveryTimer = HIT_RECOVERY_SECONDS;
+        setHudMessage("COEUR PERDU  " + livesRemaining + " restants", 1.1);
+        emitRespawnBurst();
         layersNeedRefresh = true;
-        state = GameState.PLAYING;
+    }
+
+    private void triggerGameOver() {
+        finalScore = (int) Math.floor(scoreValue);
+        state = GameState.GAME_OVER;
+        hud.showGameOver(finalScore, highScores.qualifies(finalScore));
+        layersNeedRefresh = true;
     }
 
     private void updateHazards(double delta) {
         for (int index = hazards.size() - 1; index >= 0; index--) {
             Hazard hazard = hazards.get(index);
             hazard.update(delta);
+            if (player.isInvulnerable() && hazard.collides(player)) {
+                shatterHazard(index, hazard);
+                continue;
+            }
+            if (hazard.tryGraze(player, 24.0)) {
+                rewardGraze(hazard);
+            }
             if (hazard.isOffscreen(fieldLeft, fieldBottom, fieldRight, fieldTop)) {
                 hazard.removeFrom(window);
                 hazards.remove(index);
@@ -307,7 +420,7 @@ public class Game {
     }
 
     private boolean hasCollision() {
-        if (player.isInvulnerable()) {
+        if (player.isInvulnerable() || recoveryTimer > 0.0) {
             return false;
         }
         for (int index = 0; index < hazards.size(); index++) {
@@ -318,7 +431,7 @@ public class Game {
         return false;
     }
 
-    private int getElapsedScore() {
+    private int getElapsedSeconds() {
         return (int) ((System.currentTimeMillis() - runStartMillis) / 1000L);
     }
 
@@ -367,6 +480,12 @@ public class Game {
         }
     }
 
+    private void addTextureIfPresent(String texturePath, Point origin, int textureWidth, int textureHeight) {
+        if (new File(texturePath).exists()) {
+            window.ajouter(new Texture(texturePath, origin, textureWidth, textureHeight));
+        }
+    }
+
     private void refreshForegroundLayers() {
         for (int index = 0; index < arenaForeground.size(); index++) {
             Dessin layer = arenaForeground.get(index);
@@ -400,6 +519,65 @@ public class Game {
         particles.add(particle);
         particle.addTo(window);
         layersNeedRefresh = true;
+    }
+
+    private void tickScoreSystems(double delta) {
+        if (comboTimer > 0.0) {
+            comboTimer = Math.max(0.0, comboTimer - delta);
+            if (comboTimer == 0.0) {
+                comboMultiplier = 1;
+            }
+        }
+
+        if (hudMessageTimer > 0.0) {
+            hudMessageTimer = Math.max(0.0, hudMessageTimer - delta);
+            if (hudMessageTimer == 0.0) {
+                hudMessage = "";
+            }
+        }
+
+        scoreValue += delta * (12.0 + Math.max(0, comboMultiplier - 1) * 6.0);
+        finalScore = (int) Math.floor(scoreValue);
+    }
+
+    private void extendCombo(int amount, double durationSeconds) {
+        if (comboTimer <= 0.0) {
+            comboMultiplier = 1;
+        }
+        comboMultiplier = Math.min(5, comboMultiplier + amount);
+        comboTimer = Math.max(comboTimer, durationSeconds);
+    }
+
+    private void setHudMessage(String message, double durationSeconds) {
+        hudMessage = message;
+        hudMessageTimer = durationSeconds;
+    }
+
+    private void rewardGraze(Hazard hazard) {
+        extendCombo(1, 1.7);
+        int bonus = 18 + comboMultiplier * 8;
+        scoreValue += bonus;
+        finalScore = (int) Math.floor(scoreValue);
+        setHudMessage("GRAZE +" + bonus + "   Flux x" + comboMultiplier, 0.8);
+        emitGrazeBurst(hazard.getX(), hazard.getY());
+    }
+
+    private void shatterHazard(int index, Hazard hazard) {
+        hazards.remove(index);
+        hazard.removeFrom(window);
+        shatteredCount++;
+        extendCombo(1, 2.2);
+        int bonus = 34 + comboMultiplier * 14;
+        scoreValue += bonus;
+        finalScore = (int) Math.floor(scoreValue);
+        player.reduceCooldown(0.28);
+        setHudMessage("BREAK +" + bonus + "   Dash recharge", 0.9);
+        emitShatterBurst(hazard.getX(), hazard.getY(), hazard.getVelocityX(), hazard.getVelocityY());
+        layersNeedRefresh = true;
+    }
+
+    private void updateArenaAmbience(double delta) {
+        ambientTime += delta;
     }
 
     // Particles are kept intentionally lightweight: they add motion without overloading MG2D.
@@ -452,6 +630,60 @@ public class Game {
                 1.0,
                 new Couleur(255, 241, 170),
                 new Couleur(50, 30, 12)
+            ));
+        }
+    }
+
+    private void emitRespawnBurst() {
+        for (int index = 0; index < 20; index++) {
+            double angle = (Math.PI * 2.0 * index) / 20.0 + random.nextDouble() * 0.18;
+            double speed = 95.0 + random.nextDouble() * 115.0;
+            addParticle(new Particle(
+                player.getX(),
+                player.getY(),
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed,
+                0.34 + random.nextDouble() * 0.08,
+                9.0 + random.nextDouble() * 3.0,
+                1.0,
+                new Couleur(196, 252, 255),
+                new Couleur(24, 46, 64)
+            ));
+        }
+    }
+
+    private void emitDoubleDashBurst() {
+        double directionX = player.getDirectionX();
+        double directionY = player.getDirectionY();
+
+        for (int index = 0; index < 30; index++) {
+            double angle = (Math.PI * 2.0 * index) / 30.0 + random.nextDouble() * 0.12;
+            double speed = 210.0 + random.nextDouble() * 210.0;
+            addParticle(new Particle(
+                player.getX(),
+                player.getY(),
+                Math.cos(angle) * speed + directionX * 70.0,
+                Math.sin(angle) * speed + directionY * 70.0,
+                0.30 + random.nextDouble() * 0.10,
+                11.0 + random.nextDouble() * 3.0,
+                1.0,
+                index % 2 == 0 ? new Couleur(196, 250, 255) : new Couleur(124, 242, 255),
+                new Couleur(18, 36, 52)
+            ));
+        }
+
+        for (int index = 0; index < 12; index++) {
+            double spread = (index - 5.5) * 9.0;
+            addParticle(new Particle(
+                player.getX() - directionX * 8.0,
+                player.getY() - directionY * 8.0,
+                directionX * (260.0 + random.nextDouble() * 90.0) + spread * -directionY,
+                directionY * (260.0 + random.nextDouble() * 90.0) + spread * directionX,
+                0.24 + random.nextDouble() * 0.08,
+                8.0 + random.nextDouble() * 2.0,
+                1.0,
+                new Couleur(255, 255, 255),
+                new Couleur(80, 220, 255)
             ));
         }
     }
@@ -511,65 +743,82 @@ public class Game {
         }
     }
 
+    private void emitGrazeBurst(double centerX, double centerY) {
+        for (int index = 0; index < 10; index++) {
+            double angle = (Math.PI * 2.0 * index) / 10.0 + random.nextDouble() * 0.22;
+            double speed = 70.0 + random.nextDouble() * 80.0;
+            addParticle(new Particle(
+                centerX,
+                centerY,
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed,
+                0.18 + random.nextDouble() * 0.07,
+                5.0 + random.nextDouble() * 2.0,
+                1.0,
+                new Couleur(118, 255, 232),
+                new Couleur(14, 28, 38)
+            ));
+        }
+    }
+
+    private void emitShatterBurst(double centerX, double centerY, double velocityX, double velocityY) {
+        for (int index = 0; index < 16; index++) {
+            double angle = (Math.PI * 2.0 * index) / 16.0 + random.nextDouble() * 0.18;
+            double speed = 105.0 + random.nextDouble() * 125.0;
+            addParticle(new Particle(
+                centerX,
+                centerY,
+                Math.cos(angle) * speed + velocityX * 0.12,
+                Math.sin(angle) * speed + velocityY * 0.12,
+                0.24 + random.nextDouble() * 0.08,
+                6.0 + random.nextDouble() * 2.5,
+                1.0,
+                index % 2 == 0 ? new Couleur(255, 174, 96) : new Couleur(255, 114, 188),
+                new Couleur(18, 22, 36)
+            ));
+        }
+    }
+
     private void addForeground(Dessin layer) {
         arenaForeground.add(layer);
         window.ajouter(layer);
     }
 
     private void buildArena() {
-        Couleur backgroundColor = new Couleur(3, 5, 15);
-        Couleur backdropColor = new Couleur(7, 10, 24);
-        Couleur playfieldColor = new Couleur(9, 17, 40);
-        Couleur gridColorA = new Couleur(20, 36, 82);
-        Couleur gridColorB = new Couleur(24, 28, 62);
-        Couleur frameColor = new Couleur(36, 212, 255);
-        Couleur innerFrameColor = new Couleur(255, 103, 173);
-        Couleur outerPanelColor = new Couleur(7, 10, 24);
-        Couleur maskColor = new Couleur(5, 7, 20);
-        Random decorRandom = new Random(7L);
+        Couleur backgroundColor = new Couleur(9, 12, 18);
+        Couleur borderShadow = new Couleur(12, 14, 18);
+        Couleur playfieldColor = new Couleur(16, 20, 28);
+        Couleur centerGlow = new Couleur(212, 180, 132);
+        Couleur sideGlow = new Couleur(120, 148, 164);
+        Couleur frameColor = new Couleur(220, 212, 196);
+        Couleur innerFrameColor = new Couleur(160, 132, 98);
+        Couleur outerPanelColor = new Couleur(8, 10, 16);
+        Couleur maskColor = new Couleur(10, 11, 16);
+        int playfieldWidth = fieldRight - fieldLeft;
+        int playfieldHeight = fieldTop - fieldBottom;
 
         window.ajouter(new Rectangle(backgroundColor, new Point(0, 0), width, height, true));
-        window.ajouter(new Rectangle(backdropColor, new Point(0, 0), width, height, true));
+        addTextureIfPresent("arena_background.png", new Point(0, 0), width, height);
+        window.ajouter(new Rectangle(borderShadow, new Point(fieldLeft - 34, fieldBottom - 34), playfieldWidth + 68, playfieldHeight + 68, true));
+        window.ajouter(new Rectangle(playfieldColor, new Point(fieldLeft, fieldBottom), playfieldWidth, playfieldHeight, true));
+        addTextureIfPresent("arena_floor.png", new Point(fieldLeft, fieldBottom), playfieldWidth, playfieldHeight);
 
-        for (int index = 0; index < 110; index++) {
-            int radius = 1 + decorRandom.nextInt(3);
-            int x = decorRandom.nextInt(Math.max(1, fieldRight - fieldLeft - 60)) + fieldLeft + 30;
-            int y = decorRandom.nextInt(Math.max(1, fieldTop - fieldBottom - 60)) + fieldBottom + 30;
-
-            Couleur starColor = index % 3 == 0
-                ? new Couleur(18, 110, 170)
-                : (index % 3 == 1 ? new Couleur(82, 30, 92) : new Couleur(90, 68, 26));
-            window.ajouter(new Cercle(starColor, new Point(x, y), radius, true));
-        }
-
-        window.ajouter(new Rectangle(new Couleur(4, 7, 22), new Point(fieldLeft - 24, fieldBottom - 24), fieldRight - fieldLeft + 48, fieldTop - fieldBottom + 48, true));
-        window.ajouter(new Rectangle(playfieldColor, new Point(fieldLeft, fieldBottom), fieldRight - fieldLeft, fieldTop - fieldBottom, true));
-
-        for (int x = fieldLeft + 60; x < fieldRight; x += 60) {
-            window.ajouter(new Ligne(gridColorA, new Point(x, fieldBottom), new Point(x, fieldTop)));
-        }
-
-        for (int y = fieldBottom + 60; y < fieldTop; y += 60) {
-            window.ajouter(new Ligne(gridColorB, new Point(fieldLeft, y), new Point(fieldRight, y)));
-        }
-
-        for (int offset = 20; offset < fieldRight - fieldLeft; offset += 140) {
-            int x1 = fieldLeft + offset;
-            int y1 = fieldBottom;
-            int x2 = Math.min(fieldRight, x1 + 180);
-            int y2 = Math.min(fieldTop, fieldBottom + 180);
-            window.ajouter(new Ligne(new Couleur(14, 22, 56), new Point(x1, y1), new Point(x2, y2)));
-        }
+        int centerX = (fieldLeft + fieldRight) / 2;
+        int leftGuide = fieldLeft + playfieldWidth / 4;
+        int rightGuide = fieldRight - playfieldWidth / 4;
+        window.ajouter(new Ligne(centerGlow, new Point(centerX, fieldBottom + 28), new Point(centerX, fieldTop - 28)));
+        window.ajouter(new Ligne(sideGlow, new Point(leftGuide, fieldBottom + 44), new Point(leftGuide, fieldTop - 44)));
+        window.ajouter(new Ligne(sideGlow, new Point(rightGuide, fieldBottom + 44), new Point(rightGuide, fieldTop - 44)));
 
         addForeground(new Rectangle(outerPanelColor, new Point(0, 0), fieldLeft, height, true));
         addForeground(new Rectangle(outerPanelColor, new Point(fieldRight, 0), width - fieldRight, height, true));
-        addForeground(new Rectangle(maskColor, new Point(fieldLeft, 0), fieldRight - fieldLeft, fieldBottom, true));
-        addForeground(new Rectangle(maskColor, new Point(fieldLeft, fieldTop), fieldRight - fieldLeft, height - fieldTop, true));
-        addForeground(new Rectangle(frameColor, new Point(fieldLeft, fieldBottom), fieldRight - fieldLeft, fieldTop - fieldBottom, false));
-        addForeground(new Rectangle(innerFrameColor, new Point(fieldLeft + 8, fieldBottom + 8), fieldRight - fieldLeft - 16, fieldTop - fieldBottom - 16, false));
-        addForeground(new Rectangle(new Couleur(10, 16, 42), new Point(fieldLeft - 18, fieldBottom - 18), fieldRight - fieldLeft + 36, 14, true));
-        addForeground(new Rectangle(new Couleur(10, 16, 42), new Point(fieldLeft - 18, fieldTop + 4), fieldRight - fieldLeft + 36, 14, true));
-        addForeground(new Rectangle(new Couleur(10, 16, 42), new Point(fieldLeft - 18, fieldBottom - 4), 14, fieldTop - fieldBottom + 8, true));
-        addForeground(new Rectangle(new Couleur(10, 16, 42), new Point(fieldRight + 4, fieldBottom - 4), 14, fieldTop - fieldBottom + 8, true));
+        addForeground(new Rectangle(maskColor, new Point(fieldLeft, 0), playfieldWidth, fieldBottom, true));
+        addForeground(new Rectangle(maskColor, new Point(fieldLeft, fieldTop), playfieldWidth, height - fieldTop, true));
+        addForeground(new Rectangle(frameColor, new Point(fieldLeft, fieldBottom), playfieldWidth, playfieldHeight, false));
+        addForeground(new Rectangle(innerFrameColor, new Point(fieldLeft + 10, fieldBottom + 10), playfieldWidth - 20, playfieldHeight - 20, false));
+        addForeground(new Rectangle(new Couleur(14, 12, 16), new Point(fieldLeft - 22, fieldBottom - 22), playfieldWidth + 44, 16, true));
+        addForeground(new Rectangle(new Couleur(14, 12, 16), new Point(fieldLeft - 22, fieldTop + 6), playfieldWidth + 44, 16, true));
+        addForeground(new Rectangle(new Couleur(14, 12, 16), new Point(fieldLeft - 22, fieldBottom - 6), 16, playfieldHeight + 12, true));
+        addForeground(new Rectangle(new Couleur(14, 12, 16), new Point(fieldRight + 6, fieldBottom - 6), 16, playfieldHeight + 12, true));
     }
 }

@@ -4,24 +4,18 @@ import java.util.ArrayList;
 import java.util.Random;
 
 class Spawner {
-    private static final int MAX_WALL_SIZE = 6;
-
-    private static final Couleur[] CORE_COLORS = {
-        new Couleur(255, 96, 189),
-        new Couleur(255, 176, 52),
-        new Couleur(112, 173, 255)
-    };
-
-    private static final Couleur[] GLOW_COLORS = {
-        new Couleur(255, 150, 218),
-        new Couleur(255, 225, 122),
-        new Couleur(164, 212, 255)
-    };
+    private static final int MAX_WALL_SIZE = 5;
 
     private static final Couleur[] TRAIL_COLORS = {
-        new Couleur(255, 96, 189),
-        new Couleur(255, 176, 52),
-        new Couleur(112, 173, 255)
+        new Couleur(255, 110, 184),
+        new Couleur(255, 188, 84),
+        new Couleur(255, 92, 92)
+    };
+
+    private static final String[] SPRITE_PATHS = {
+        "hazard_blade_rose.png",
+        "hazard_blade_amber.png",
+        "hazard_blade_azure.png"
     };
 
     private double spawnTimer;
@@ -70,17 +64,17 @@ class Spawner {
     }
 
     private double getSpawnInterval(int elapsedSeconds) {
-        double interval = 0.92 - elapsedSeconds * 0.022;
-        if (interval < 0.24) {
-            return 0.24;
+        double interval = 1.08 - elapsedSeconds * 0.016;
+        if (interval < 0.38) {
+            return 0.38;
         }
         return interval;
     }
 
     private int getMaxHazards(int elapsedSeconds) {
-        int limit = 5 + elapsedSeconds / 4;
-        if (limit > 20) {
-            return 20;
+        int limit = 4 + elapsedSeconds / 6;
+        if (limit > 12) {
+            return 12;
         }
         return limit;
     }
@@ -89,17 +83,17 @@ class Spawner {
         ArrayList<Hazard> wave = new ArrayList<Hazard>();
         int patternRoll = random.nextInt(100);
 
-        if (elapsedSeconds >= 15 && room >= 5 && patternRoll < 28) {
+        if (elapsedSeconds >= 20 && room >= 4 && patternRoll < 18) {
             addLaneSweepWave(wave, random, elapsedSeconds, left, bottom, right, top, room);
             return wave;
         }
 
-        if (elapsedSeconds >= 9 && room >= 3 && patternRoll < 60) {
+        if (elapsedSeconds >= 10 && room >= 3 && patternRoll < 48) {
             addSpreadWave(wave, random, elapsedSeconds, left, bottom, right, top, room);
             return wave;
         }
 
-        if (elapsedSeconds >= 5 && room >= 2 && patternRoll < 84) {
+        if (elapsedSeconds >= 6 && room >= 2 && patternRoll < 74) {
             addPincerWave(wave, random, elapsedSeconds, left, bottom, right, top, room);
             return wave;
         }
@@ -226,8 +220,8 @@ class Spawner {
         directionX /= length;
         directionY /= length;
 
-        double speed = (235.0 + elapsedSeconds * 12.0 + random.nextInt(75)) * speedMultiplier;
-        int palette = random.nextInt(CORE_COLORS.length);
+        double speed = (195.0 + elapsedSeconds * 8.0 + random.nextInt(55)) * speedMultiplier;
+        int palette = random.nextInt(SPRITE_PATHS.length);
 
         return new Hazard(
             startX,
@@ -236,8 +230,7 @@ class Spawner {
             directionX * speed,
             directionY * speed,
             TRAIL_COLORS[palette],
-            CORE_COLORS[palette],
-            GLOW_COLORS[palette]
+            SPRITE_PATHS[palette]
         );
     }
 
