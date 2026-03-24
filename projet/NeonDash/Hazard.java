@@ -111,4 +111,8 @@ class Hazard {
     public int getRadius() {
         return radius;
     }
+
+    public int getCollisionRadius() {
+        return collisionRadius;
+    }
 }

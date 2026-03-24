@@ -105,6 +105,21 @@ Fichiers d'integration :
 - `projet/NeonDash/highscore`
 - `NeonDash.sh`
 
+Structure interne :
+- `projet/NeonDash/Main.java` : point d'entree
+- `projet/NeonDash/Game.java` : boucle principale et etats du jeu
+- `projet/NeonDash/Player.java` : deplacement, dash et orientation
+- `projet/NeonDash/Hazard.java` : ennemis et collisions
+- `projet/NeonDash/Spawner.java` : patterns et difficulte
+- `projet/NeonDash/Hud.java` : HUD et overlays
+- `projet/NeonDash/HighScoreTable.java` : lecture / ecriture des scores
+- `projet/NeonDash/Assets.java` : chemins centralises des assets
+- `projet/NeonDash/GameAudio.java` : gestion des bruitages du jeu
+- `projet/NeonDash/assets/` : sprites de gameplay ranges par categorie
+
+Musique de fond :
+- `NeonDash` reutilise `Tied_Up.mp3` provenant de `projet/Pong`, copie dans `projet/NeonDash/assets/audio/background_loop.mp3`
+
 Lancement local :
 
 > cd /Users/yat/Downloads/borne_arcade

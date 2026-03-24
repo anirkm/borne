@@ -12,12 +12,6 @@ class Spawner {
         new Couleur(255, 92, 92)
     };
 
-    private static final String[] SPRITE_PATHS = {
-        "hazard_blade_rose.png",
-        "hazard_blade_amber.png",
-        "hazard_blade_azure.png"
-    };
-
     private double spawnTimer;
 
     public void reset() {
@@ -221,7 +215,7 @@ class Spawner {
         directionY /= length;
 
         double speed = (182.0 + elapsedSeconds * 6.0 + random.nextInt(45)) * speedMultiplier;
-        int palette = random.nextInt(SPRITE_PATHS.length);
+        int palette = random.nextInt(Assets.HAZARD_VARIANTS.length);
 
         return new Hazard(
             startX,
@@ -230,7 +224,7 @@ class Spawner {
             directionX * speed,
             directionY * speed,
             TRAIL_COLORS[palette],
-            SPRITE_PATHS[palette]
+            Assets.HAZARD_VARIANTS[palette]
         );
     }
 

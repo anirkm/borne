@@ -16,7 +16,7 @@ class Hud {
     private static final Couleur ACCENT_COLOR = new Couleur(110, 200, 255);
     private static final Couleur READY_COLOR = new Couleur(118, 255, 213);
     private static final Couleur COOLING_COLOR = new Couleur(255, 193, 102);
-    private static final int COOLDOWN_TRACK_WIDTH = 126;
+    private static final int COOLDOWN_TRACK_WIDTH = 108;
 
     private final int width;
     private final int height;
@@ -32,6 +32,7 @@ class Hud {
     private Fenetre window;
 
     private final Rectangle hudBand;
+    private final Rectangle footerBand;
     private final Rectangle cooldownTrack;
     private final Rectangle cooldownFill;
     private final Rectangle overlayPanel;
@@ -39,8 +40,12 @@ class Hud {
     private final Rectangle leftInfoPanel;
     private final Rectangle centerInfoPanel;
     private final Rectangle rightInfoPanel;
+    private final Rectangle footerLeftPanel;
+    private final Rectangle footerCenterPanel;
+    private final Rectangle footerRightPanel;
     private final Rectangle rightInfoInset;
     private final Rectangle rightInfoAccent;
+    private final Rectangle rightInfoDivider;
 
     private final Texte brandText;
     private final Texte scoreText;
@@ -91,24 +96,29 @@ class Hud {
         };
 
         hudBand = new Rectangle(HUD_BG, new Point(0, height - 112), width, 112, true);
-        leftInfoPanel = new Rectangle(PANEL_BG, new Point(26, height - 96), 264, 68, true);
-        centerInfoPanel = new Rectangle(PANEL_BG, new Point(width / 2 - 154, height - 96), 308, 68, true);
-        rightInfoPanel = new Rectangle(PANEL_BG, new Point(width - 404, height - 98), 368, 74, true);
-        rightInfoInset = new Rectangle(new Couleur(13, 20, 30), new Point(width - 392, height - 92), 344, 60, true);
-        rightInfoAccent = new Rectangle(ACCENT_COLOR, new Point(width - 356, height - 82), 4, 46, true);
-        cooldownTrack = new Rectangle(new Couleur(37, 53, 67), new Point(width - 180, height - 86), COOLDOWN_TRACK_WIDTH, 14, true);
-        cooldownFill = new Rectangle(READY_COLOR, new Point(width - 180, height - 86), COOLDOWN_TRACK_WIDTH, 14, true);
+        leftInfoPanel = new Rectangle(PANEL_BG, new Point(24, height - 96), 300, 68, true);
+        centerInfoPanel = new Rectangle(PANEL_BG, new Point(width / 2 - 170, height - 96), 340, 68, true);
+        rightInfoPanel = new Rectangle(PANEL_BG, new Point(width - 324, height - 96), 300, 68, true);
+        footerBand = new Rectangle(HUD_BG, new Point(0, 0), width, 64, true);
+        footerLeftPanel = new Rectangle(PANEL_BG, new Point(24, 10), 232, 44, true);
+        footerCenterPanel = new Rectangle(PANEL_BG, new Point(width / 2 - 280, 10), 560, 44, true);
+        footerRightPanel = new Rectangle(PANEL_BG, new Point(width - 356, 10), 320, 44, true);
+        rightInfoInset = new Rectangle(new Couleur(13, 20, 30), new Point(width - 344, 14), 296, 36, true);
+        rightInfoAccent = new Rectangle(ACCENT_COLOR, new Point(width - 338, 16), 4, 32, true);
+        rightInfoDivider = new Rectangle(new Couleur(39, 58, 76), new Point(width - 198, 14), 2, 36, true);
+        cooldownTrack = new Rectangle(new Couleur(37, 53, 67), new Point(width - 174, 20), COOLDOWN_TRACK_WIDTH, 10, true);
+        cooldownFill = new Rectangle(READY_COLOR, new Point(width - 174, 20), COOLDOWN_TRACK_WIDTH, 10, true);
         overlayPanel = new Rectangle(PANEL_BG, new Point(-5000, -5000), 10, 10, true);
         overlayFrame = new Rectangle(FRAME_COLOR, new Point(-5000, -5000), 10, 10, false);
 
-        brandText = new Texte(ACCENT_COLOR, "NEON DASH", bodyFont, new Point(width / 2, height - 22));
-        scoreText = new Texte(TEXT_COLOR, "Score 0", bodyFont, new Point(158, height - 58));
+        brandText = new Texte(ACCENT_COLOR, "NEON DASH", bodyFont, new Point(width / 2, height - 18));
+        scoreText = new Texte(TEXT_COLOR, "Score 0", bodyFont, new Point(44, height - 58), Texte.GAUCHE);
         difficultyText = new Texte(TEXT_COLOR, "Niveau 1", bodyFont, new Point(width / 2, height - 58));
-        dashText = new Texte(TEXT_COLOR, "2 / 2", bodyFont, new Point(width - 122, height - 58));
-        hintText = new Texte(TEXT_COLOR, "", smallFont, new Point(width / 2, height - 88));
-        statsText = new Texte(ACCENT_COLOR, "", smallFont, new Point(158, height - 86));
-        livesLabel = new Texte(ACCENT_COLOR, "Coques", smallFont, new Point(width - 304, height - 52));
-        systemsLabel = new Texte(ACCENT_COLOR, "Double Dash", smallFont, new Point(width - 122, height - 52));
+        dashText = new Texte(TEXT_COLOR, "2/2", smallFont, new Point(width - 314, 23), Texte.GAUCHE);
+        hintText = new Texte(TEXT_COLOR, "", smallFont, new Point(width / 2, 32));
+        statsText = new Texte(ACCENT_COLOR, "", smallFont, new Point(width - 300, height - 58), Texte.GAUCHE);
+        livesLabel = new Texte(ACCENT_COLOR, "Vies", smallFont, new Point(44, 32), Texte.GAUCHE);
+        systemsLabel = new Texte(ACCENT_COLOR, "Dash", smallFont, new Point(width - 314, 42), Texte.GAUCHE);
 
         overlayTitle = new Texte(TEXT_COLOR, "", titleFont, new Point(centerX, panelTop - 70));
         overlayLine1 = new Texte(TEXT_COLOR, "", bodyFont, new Point(centerX, panelTop - 150));
@@ -123,9 +133,9 @@ class Hud {
         nameSlots[2] = new Texte(TEXT_COLOR, "", titleFont, new Point(nameSlotX[2], panelBottom + 120));
         nameSlots[3] = new Texte(TEXT_COLOR, "", bodyFont, new Point(nameSlotX[3], panelBottom + 118));
         hearts = new Texture[] {
-            new Texture("hud_heart_full.png", new Point(width - 336, height - 88), 30, 27),
-            new Texture("hud_heart_full.png", new Point(width - 300, height - 88), 30, 27),
-            new Texture("hud_heart_full.png", new Point(width - 264, height - 88), 30, 27)
+            new Texture(Assets.HUD_HEART_FULL, new Point(108, 11), 24, 21),
+            new Texture(Assets.HUD_HEART_FULL, new Point(136, 11), 24, 21),
+            new Texture(Assets.HUD_HEART_FULL, new Point(164, 11), 24, 21)
         };
         selector = new Triangle(
             ACCENT_COLOR,
@@ -139,11 +149,16 @@ class Hud {
     public void addTo(Fenetre window) {
         this.window = window;
         window.ajouter(hudBand);
+        window.ajouter(footerBand);
         window.ajouter(leftInfoPanel);
         window.ajouter(centerInfoPanel);
         window.ajouter(rightInfoPanel);
+        window.ajouter(footerLeftPanel);
+        window.ajouter(footerCenterPanel);
+        window.ajouter(footerRightPanel);
         window.ajouter(rightInfoInset);
         window.ajouter(rightInfoAccent);
+        window.ajouter(rightInfoDivider);
         window.ajouter(cooldownTrack);
         window.ajouter(cooldownFill);
         window.ajouter(overlayPanel);
@@ -175,11 +190,16 @@ class Hud {
 
     public void bringToFront(Fenetre window) {
         window.supprimer(hudBand);
+        window.supprimer(footerBand);
         window.supprimer(leftInfoPanel);
         window.supprimer(centerInfoPanel);
         window.supprimer(rightInfoPanel);
+        window.supprimer(footerLeftPanel);
+        window.supprimer(footerCenterPanel);
+        window.supprimer(footerRightPanel);
         window.supprimer(rightInfoInset);
         window.supprimer(rightInfoAccent);
+        window.supprimer(rightInfoDivider);
         window.supprimer(cooldownTrack);
         window.supprimer(cooldownFill);
         window.supprimer(overlayPanel);
@@ -207,11 +227,16 @@ class Hud {
         window.supprimer(nameSlots[3]);
         window.supprimer(selector);
         window.ajouter(hudBand);
+        window.ajouter(footerBand);
         window.ajouter(leftInfoPanel);
         window.ajouter(centerInfoPanel);
         window.ajouter(rightInfoPanel);
+        window.ajouter(footerLeftPanel);
+        window.ajouter(footerCenterPanel);
+        window.ajouter(footerRightPanel);
         window.ajouter(rightInfoInset);
         window.ajouter(rightInfoAccent);
+        window.ajouter(rightInfoDivider);
         window.ajouter(cooldownTrack);
         window.ajouter(cooldownFill);
         window.ajouter(overlayPanel);
@@ -247,19 +272,15 @@ class Hud {
         statsText.setTexte("Brisees " + shatteredCount);
 
         for (int index = 0; index < hearts.length; index++) {
-            hearts[index].setImg(index < livesRemaining ? "hud_heart_full.png" : "hud_heart_empty.png");
+            hearts[index].setImg(index < livesRemaining ? Assets.HUD_HEART_FULL : Assets.HUD_HEART_EMPTY);
         }
 
         if (dashCharges >= dashCapacity) {
-            dashText.setTexte(dashCharges + " / " + dashCapacity);
+            dashText.setTexte(dashCharges + "/" + dashCapacity + " READY");
             cooldownFill.setCouleur(READY_COLOR);
         } else {
             int percent = (int) Math.round(dashRatio * 100.0);
-            if (dashCharges > 0) {
-                dashText.setTexte(dashCharges + " / " + dashCapacity + "  " + percent + "%");
-            } else {
-                dashText.setTexte("0 / " + dashCapacity + "  " + percent + "%");
-            }
+            dashText.setTexte(dashCharges + "/" + dashCapacity + "  " + percent + "%");
             cooldownFill.setCouleur(COOLING_COLOR);
         }
 

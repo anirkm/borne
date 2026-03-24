@@ -19,6 +19,8 @@ class Player {
     private static final double DASH_SPEED = 1040.0;
     private static final double DASH_DURATION = 0.18;
     private static final double DASH_COOLDOWN = 0.90;
+    private static final double DASH_SWEEP_LENGTH = 86.0;
+    private static final double DASH_SWEEP_RADIUS = 15.0;
     private static final int MAX_DASH_CHARGES = 2;
 
     private final int radius;
@@ -60,26 +62,26 @@ class Player {
         this.shadowHeight = shipHeight + 16;
         this.dashWidth = shipWidth + 30;
         this.dashHeight = shipHeight + 20;
-        this.shadow = new Texture("player_shadow.png", new Point(startX - shadowWidth / 2, startY - shadowHeight / 2), shadowWidth, shadowHeight);
+        this.shadow = new Texture(Assets.PLAYER_SHADOW, new Point(startX - shadowWidth / 2, startY - shadowHeight / 2), shadowWidth, shadowHeight);
         this.shipVariants = new Texture[] {
-            new Texture("player_ship_up.png", new Point(-5000, -5000), shipWidth, shipHeight),
-            new Texture("player_ship_up_right.png", new Point(-5000, -5000), shipWidth, shipHeight),
-            new Texture("player_ship_right.png", new Point(-5000, -5000), shipWidth, shipHeight),
-            new Texture("player_ship_down_right.png", new Point(-5000, -5000), shipWidth, shipHeight),
-            new Texture("player_ship_down.png", new Point(-5000, -5000), shipWidth, shipHeight),
-            new Texture("player_ship_down_left.png", new Point(-5000, -5000), shipWidth, shipHeight),
-            new Texture("player_ship_left.png", new Point(-5000, -5000), shipWidth, shipHeight),
-            new Texture("player_ship_up_left.png", new Point(-5000, -5000), shipWidth, shipHeight)
+            new Texture(Assets.PLAYER_SHIP_VARIANTS[0], new Point(-5000, -5000), shipWidth, shipHeight),
+            new Texture(Assets.PLAYER_SHIP_VARIANTS[1], new Point(-5000, -5000), shipWidth, shipHeight),
+            new Texture(Assets.PLAYER_SHIP_VARIANTS[2], new Point(-5000, -5000), shipWidth, shipHeight),
+            new Texture(Assets.PLAYER_SHIP_VARIANTS[3], new Point(-5000, -5000), shipWidth, shipHeight),
+            new Texture(Assets.PLAYER_SHIP_VARIANTS[4], new Point(-5000, -5000), shipWidth, shipHeight),
+            new Texture(Assets.PLAYER_SHIP_VARIANTS[5], new Point(-5000, -5000), shipWidth, shipHeight),
+            new Texture(Assets.PLAYER_SHIP_VARIANTS[6], new Point(-5000, -5000), shipWidth, shipHeight),
+            new Texture(Assets.PLAYER_SHIP_VARIANTS[7], new Point(-5000, -5000), shipWidth, shipHeight)
         };
         this.dashVariants = new Texture[] {
-            new Texture("player_ship_dash_up.png", new Point(-5000, -5000), dashWidth, dashHeight),
-            new Texture("player_ship_dash_up_right.png", new Point(-5000, -5000), dashWidth, dashHeight),
-            new Texture("player_ship_dash_right.png", new Point(-5000, -5000), dashWidth, dashHeight),
-            new Texture("player_ship_dash_down_right.png", new Point(-5000, -5000), dashWidth, dashHeight),
-            new Texture("player_ship_dash_down.png", new Point(-5000, -5000), dashWidth, dashHeight),
-            new Texture("player_ship_dash_down_left.png", new Point(-5000, -5000), dashWidth, dashHeight),
-            new Texture("player_ship_dash_left.png", new Point(-5000, -5000), dashWidth, dashHeight),
-            new Texture("player_ship_dash_up_left.png", new Point(-5000, -5000), dashWidth, dashHeight)
+            new Texture(Assets.PLAYER_DASH_VARIANTS[0], new Point(-5000, -5000), dashWidth, dashHeight),
+            new Texture(Assets.PLAYER_DASH_VARIANTS[1], new Point(-5000, -5000), dashWidth, dashHeight),
+            new Texture(Assets.PLAYER_DASH_VARIANTS[2], new Point(-5000, -5000), dashWidth, dashHeight),
+            new Texture(Assets.PLAYER_DASH_VARIANTS[3], new Point(-5000, -5000), dashWidth, dashHeight),
+            new Texture(Assets.PLAYER_DASH_VARIANTS[4], new Point(-5000, -5000), dashWidth, dashHeight),
+            new Texture(Assets.PLAYER_DASH_VARIANTS[5], new Point(-5000, -5000), dashWidth, dashHeight),
+            new Texture(Assets.PLAYER_DASH_VARIANTS[6], new Point(-5000, -5000), dashWidth, dashHeight),
+            new Texture(Assets.PLAYER_DASH_VARIANTS[7], new Point(-5000, -5000), dashWidth, dashHeight)
         };
         this.wakeLeft = new Ligne(WAKE_COLOR, new Point(startX, startY), new Point(startX, startY));
         this.wakeRight = new Ligne(WAKE_COLOR, new Point(startX, startY), new Point(startX, startY));
@@ -297,6 +299,54 @@ class Player {
         boolean triggered = doubleDashTriggered;
         doubleDashTriggered = false;
         return triggered;
+    }
+
+    // The dash uses a forward capsule so one rush can break multiple aligned hazards.
+    public boolean hitsDashSweep(Hazard hazard) {
+        if (dashRemaining <= 0.0) {
+            return false;
+        }
+
+        double directionX = getDirectionX();
+        double directionY = getDirectionY();
+        if (directionX == 0.0 && directionY == 0.0) {
+            directionY = 1.0;
+        }
+
+        double startX = x - directionX * Math.max(6.0, collisionRadius * 0.25);
+        double startY = y - directionY * Math.max(6.0, collisionRadius * 0.25);
+        double endX = x + directionX * (collisionRadius + DASH_SWEEP_LENGTH);
+        double endY = y + directionY * (collisionRadius + DASH_SWEEP_LENGTH);
+        double allowedRadius = hazard.getCollisionRadius() + collisionRadius + DASH_SWEEP_RADIUS;
+
+        return distanceToSegmentSquared(hazard.getX(), hazard.getY(), startX, startY, endX, endY) <= allowedRadius * allowedRadius;
+    }
+
+    private double distanceToSegmentSquared(double px, double py, double ax, double ay, double bx, double by) {
+        double abX = bx - ax;
+        double abY = by - ay;
+        double apX = px - ax;
+        double apY = py - ay;
+        double lengthSquared = abX * abX + abY * abY;
+
+        if (lengthSquared == 0.0) {
+            double dx = px - ax;
+            double dy = py - ay;
+            return dx * dx + dy * dy;
+        }
+
+        double projection = (apX * abX + apY * abY) / lengthSquared;
+        if (projection < 0.0) {
+            projection = 0.0;
+        } else if (projection > 1.0) {
+            projection = 1.0;
+        }
+
+        double closestX = ax + abX * projection;
+        double closestY = ay + abY * projection;
+        double dx = px - closestX;
+        double dy = py - closestY;
+        return dx * dx + dy * dy;
     }
 
     private void syncVisuals() {

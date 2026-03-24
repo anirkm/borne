@@ -42,6 +42,7 @@ public class Game {
     private final Player player;
     private final Spawner spawner;
     private final Hud hud;
+    private final GameAudio audio;
     private final HighScoreTable highScores;
     private final ArrayList<Dessin> arenaForeground;
     private GameState state;
@@ -89,6 +90,8 @@ public class Game {
         player.addTo(window);
 
         spawner = new Spawner();
+        audio = new GameAudio();
+        audio.startBackgroundMusic();
         hud = new Hud(
             width,
             height,
@@ -96,9 +99,9 @@ public class Game {
             fieldBottom,
             fieldRight,
             fieldTop,
-            loadFont("../../fonts/PrStart.ttf", 46.0f, new Font("Dialog", Font.BOLD, 46)),
-            loadFont("../../fonts/Volter__28Goldfish_29.ttf", 24.0f, new Font("Dialog", Font.PLAIN, 24)),
-            loadFont("../../fonts/Volter__28Goldfish_29.ttf", 18.0f, new Font("Dialog", Font.PLAIN, 18))
+            loadFont(Assets.TITLE_FONT, 46.0f, new Font("Dialog", Font.BOLD, 46)),
+            loadFont(Assets.BODY_FONT, 24.0f, new Font("Dialog", Font.PLAIN, 24)),
+            loadFont(Assets.BODY_FONT, 18.0f, new Font("Dialog", Font.PLAIN, 18))
         );
         hud.addTo(window);
 
@@ -192,6 +195,7 @@ public class Game {
 
         if (keyboard.getBoutonJ1BTape()) {
             state = GameState.PAUSED;
+            audio.playPauseToggle();
             hud.showPaused(finalScore);
             layersNeedRefresh = true;
             return;
@@ -238,6 +242,7 @@ public class Game {
 
         if (keyboard.getBoutonJ1BTape()) {
             state = GameState.PLAYING;
+            audio.playPauseToggle();
             hud.hideOverlay();
             layersNeedRefresh = true;
         }
@@ -314,6 +319,7 @@ public class Game {
         resetRunState();
         runStartMillis = System.currentTimeMillis();
         finalScore = 0;
+        audio.playStart();
         hud.hideOverlay();
         hud.updatePlaying(0, livesRemaining, player.getDashChargeRatio(), player.getDashCharges(), player.getMaxDashCharges(), spawner.getDifficultyLevel(0), comboMultiplier, shatteredCount, "");
         layersNeedRefresh = true;
@@ -357,9 +363,11 @@ public class Game {
         emitPlayerTrail(delta);
         if (player.consumeDashTriggered()) {
             if (player.consumeDoubleDashTriggered()) {
+                audio.playDoubleDash();
                 emitDoubleDashBurst();
                 setHudMessage("DOUBLE DASH", 0.45);
             } else {
+                audio.playDash();
                 emitDashBurst();
             }
         }
@@ -380,10 +388,12 @@ public class Game {
         livesRemaining--;
 
         if (livesRemaining <= 0) {
+            audio.playGameOver();
             triggerGameOver();
             return;
         }
 
+        audio.playHit();
         clearHazards();
         clearParticles();
         player.reset((fieldLeft + fieldRight) / 2, (fieldBottom + fieldTop) / 2);
@@ -405,7 +415,7 @@ public class Game {
         for (int index = hazards.size() - 1; index >= 0; index--) {
             Hazard hazard = hazards.get(index);
             hazard.update(delta);
-            if (player.isInvulnerable() && hazard.collides(player)) {
+            if (player.isInvulnerable() && (hazard.collides(player) || player.hitsDashSweep(hazard))) {
                 shatterHazard(index, hazard);
                 continue;
             }
@@ -467,6 +477,7 @@ public class Game {
 
     private void exitToMenu() {
         clearHazards();
+        audio.stopBackgroundMusic();
         window.fermer();
         System.exit(0);
     }
@@ -565,6 +576,7 @@ public class Game {
     private void shatterHazard(int index, Hazard hazard) {
         hazards.remove(index);
         hazard.removeFrom(window);
+        audio.playBreak();
         shatteredCount++;
         extendCombo(1, 2.2);
         int bonus = 34 + comboMultiplier * 14;
@@ -798,10 +810,10 @@ public class Game {
         int playfieldHeight = fieldTop - fieldBottom;
 
         window.ajouter(new Rectangle(backgroundColor, new Point(0, 0), width, height, true));
-        addTextureIfPresent("arena_background.png", new Point(0, 0), width, height);
+        addTextureIfPresent(Assets.ARENA_BACKGROUND, new Point(0, 0), width, height);
         window.ajouter(new Rectangle(borderShadow, new Point(fieldLeft - 34, fieldBottom - 34), playfieldWidth + 68, playfieldHeight + 68, true));
         window.ajouter(new Rectangle(playfieldColor, new Point(fieldLeft, fieldBottom), playfieldWidth, playfieldHeight, true));
-        addTextureIfPresent("arena_floor.png", new Point(fieldLeft, fieldBottom), playfieldWidth, playfieldHeight);
+        addTextureIfPresent(Assets.ARENA_FLOOR, new Point(fieldLeft, fieldBottom), playfieldWidth, playfieldHeight);
 
         int centerX = (fieldLeft + fieldRight) / 2;
         int leftGuide = fieldLeft + playfieldWidth / 4;
